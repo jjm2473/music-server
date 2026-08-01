@@ -23,10 +23,11 @@ cleanup() {
 }
 trap cleanup EXIT
 
-require_root() {
-  if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
-    echo "error: this script must run as root (use sudo)." >&2
-    exit 1
+as_root() {
+  if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+    "$@"
+  else
+    sudo "$@"
   fi
 }
 
@@ -60,20 +61,18 @@ install_config() {
 install_service() {
   echo "[3/4] install systemd service"
   render_template "$SERVICE_TEMPLATE" "$SERVICE_RENDERED"
-  install -m 0644 "$SERVICE_RENDERED" "$SERVICE_TARGET"
+  as_root install -m 0644 "$SERVICE_RENDERED" "$SERVICE_TARGET"
 }
 
 restart_service() {
   echo "[4/4] reload and restart service"
-  systemctl daemon-reload
-  systemctl enable --now "$SERVICE_NAME"
-  systemctl restart "$SERVICE_NAME"
-  systemctl status --no-pager "$SERVICE_NAME" || true
+  as_root systemctl daemon-reload
+  as_root systemctl enable --now "$SERVICE_NAME"
+  as_root systemctl restart "$SERVICE_NAME"
+  as_root systemctl status --no-pager "$SERVICE_NAME" || true
 }
 
 main() {
-  require_root
-
   if [[ ! -f "$SERVICE_TEMPLATE" ]]; then
     echo "error: missing template $SERVICE_TEMPLATE" >&2
     exit 1
