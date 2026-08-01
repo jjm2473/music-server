@@ -1,0 +1,14 @@
+[Unit]
+Description=Music Server
+After=network.target
+
+[Service]
+Type=simple
+User={{RUN_USER}}
+WorkingDirectory={{WORK_DIR}}
+ExecStart={{WORK_DIR}}/bin/music-server serve -config {{WORK_DIR}}/music-server.yaml
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
