@@ -81,6 +81,39 @@ body {
   gap: 10px;
 }
 
+.track-search-input {
+  width: 220px;
+  border: 1px solid #e8e0d4;
+  border-radius: 10px;
+  padding: 7px 10px;
+  color: var(--ink);
+  background: #fff;
+}
+
+.browser-controls .mini-btn {
+  border: 1px solid #e8e0d4;
+  background: #fff;
+  color: #6d4b35;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.browser-controls .mini-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.search-count {
+  min-width: 48px;
+  text-align: center;
+  font-size: 12px;
+  color: #8f5d37;
+  background: #f8efe1;
+  border: 1px solid #e8e0d4;
+  border-radius: 999px;
+  padding: 6px 10px;
+}
+
 h1 {
   margin: 0 0 12px;
   font-size: 22px;
@@ -164,6 +197,16 @@ h2 {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.track-table tbody tr.search-hit {
+  background: #fff7dd;
+}
+
+.track-table tbody tr.search-current {
+  background: #ffe6c2;
+  outline: 1px solid #f2c588;
+  outline-offset: -1px;
 }
 
 .th-sort {

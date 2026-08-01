@@ -7,6 +7,10 @@
   const builtinListEl = document.getElementById("builtinList");
   const playAllBtn = document.getElementById("playAllBtn");
   const trackTbodyEl = document.getElementById("trackTbody");
+  const trackSearchInputEl = document.getElementById("trackSearchInput");
+  const searchPrevBtn = document.getElementById("searchPrevBtn");
+  const searchNextBtn = document.getElementById("searchNextBtn");
+  const searchCountEl = document.getElementById("searchCount");
   const browseTitleEl = document.getElementById("browseTitle");
   const sortHeaderEls = Array.from(document.querySelectorAll(".th-sort"));
 
@@ -61,6 +65,9 @@
   let currentCategoryView = currentGroupKey.startsWith("artist:") ? "artist" : "album";
   let currentSortKey = isValidSortKey(savedView.sortKey) ? savedView.sortKey : "default";
   let currentSortDir = savedView.sortDir === "desc" ? "desc" : "asc";
+  let searchQuery = "";
+  let searchMatches = [];
+  let currentSearchIndex = -1;
 
   renderGroupList(builtinListEl, builtInRows);
   renderCategoryList();
@@ -140,6 +147,58 @@
     }
   });
 
+  if (trackSearchInputEl) {
+    trackSearchInputEl.addEventListener("keydown", (ev) => {
+      if (ev.key !== "Enter") return;
+      ev.preventDefault();
+      const q = trackSearchInputEl.value.trim();
+      if (!q) {
+        clearTrackSearch();
+        return;
+      }
+      if (q === searchQuery && searchMatches.length) {
+        moveSearchMatch(1);
+        return;
+      }
+      runTrackSearch(q);
+    });
+
+    trackSearchInputEl.addEventListener("input", () => {
+      const q = trackSearchInputEl.value.trim();
+      if (q.length > 2) {
+        runTrackSearch(q);
+        return;
+      }
+      clearTrackSearch();
+    });
+
+    trackSearchInputEl.addEventListener("blur", () => {
+      const q = trackSearchInputEl.value.trim();
+      if (!q) {
+        clearTrackSearch();
+        return;
+      }
+      if (q === searchQuery) {
+        return;
+      }
+      runTrackSearch(q);
+    });
+  }
+
+  if (searchPrevBtn) {
+    searchPrevBtn.addEventListener("click", () => {
+      moveSearchMatch(-1);
+    });
+  }
+
+  if (searchNextBtn) {
+    searchNextBtn.addEventListener("click", () => {
+      moveSearchMatch(1);
+    });
+  }
+
+  updateSearchNavButtons();
+
   favoriteBtn.addEventListener("click", () => {
     const current = ap.list.audios[ap.list.index];
     if (!current) return;
@@ -172,6 +231,132 @@
       const isActive = !!playingKey && btn.dataset.key === playingKey;
       btn.classList.toggle("is-active", isActive);
     });
+  }
+
+  function runTrackSearch(rawQuery) {
+    const q = String(rawQuery || "").trim();
+    if (!q) {
+      clearTrackSearch();
+      return;
+    }
+    searchQuery = q;
+    searchMatches = collectSearchMatches(searchQuery);
+    applySearchHitClasses();
+    if (!searchMatches.length) {
+      currentSearchIndex = -1;
+      updateSearchNavButtons();
+      updateSearchCounter();
+      return;
+    }
+    currentSearchIndex = 0;
+    applyCurrentSearchMarker();
+    scrollMatchIntoView(currentSearchIndex);
+    updateSearchNavButtons();
+    updateSearchCounter();
+  }
+
+  function clearTrackSearch() {
+    searchQuery = "";
+    searchMatches = [];
+    currentSearchIndex = -1;
+    clearSearchClasses();
+    updateSearchNavButtons();
+    updateSearchCounter();
+  }
+
+  function collectSearchMatches(query) {
+    const norm = normalizeSearchText(query);
+    if (!norm) return [];
+    const rows = Array.from(trackTbodyEl.querySelectorAll("tr[data-search-text]"));
+    return rows.filter((row) => row.dataset.searchText.includes(norm));
+  }
+
+  function applySearchHitClasses() {
+    clearSearchClasses();
+    searchMatches.forEach((row) => {
+      row.classList.add("search-hit");
+    });
+  }
+
+  function applyCurrentSearchMarker() {
+    trackTbodyEl.querySelectorAll("tr.search-current").forEach((row) => {
+      row.classList.remove("search-current");
+    });
+    if (currentSearchIndex < 0 || currentSearchIndex >= searchMatches.length) return;
+    const row = searchMatches[currentSearchIndex];
+    row.classList.add("search-current");
+  }
+
+  function clearSearchClasses() {
+    trackTbodyEl.querySelectorAll("tr.search-hit, tr.search-current").forEach((row) => {
+      row.classList.remove("search-hit", "search-current");
+    });
+  }
+
+  function moveSearchMatch(step) {
+    if (!searchMatches.length) return;
+    const total = searchMatches.length;
+    currentSearchIndex = (currentSearchIndex + step + total) % total;
+    applyCurrentSearchMarker();
+    scrollMatchIntoView(currentSearchIndex);
+    updateSearchCounter();
+  }
+
+  function scrollMatchIntoView(idx) {
+    if (idx < 0 || idx >= searchMatches.length) return;
+    const row = searchMatches[idx];
+    row.scrollIntoView({ block: "center", behavior: "smooth" });
+  }
+
+  function updateSearchNavButtons() {
+    const disabled = searchMatches.length === 0;
+    if (searchPrevBtn) searchPrevBtn.disabled = disabled;
+    if (searchNextBtn) searchNextBtn.disabled = disabled;
+  }
+
+  function updateSearchCounter() {
+    if (!searchCountEl) return;
+    const total = searchMatches.length;
+    const current = total > 0 && currentSearchIndex >= 0 ? currentSearchIndex + 1 : 0;
+    searchCountEl.textContent = `${current}/${total}`;
+  }
+
+  function reapplyTrackSearchAfterRender() {
+    if (!searchQuery) {
+      clearSearchClasses();
+      updateSearchNavButtons();
+      updateSearchCounter();
+      return;
+    }
+
+    const prevKey = currentSearchIndex >= 0 && currentSearchIndex < searchMatches.length
+      ? searchMatches[currentSearchIndex].dataset.trackKey
+      : "";
+
+    searchMatches = collectSearchMatches(searchQuery);
+    applySearchHitClasses();
+
+    if (!searchMatches.length) {
+      currentSearchIndex = -1;
+      updateSearchNavButtons();
+      updateSearchCounter();
+      return;
+    }
+
+    if (prevKey) {
+      const idx = searchMatches.findIndex((row) => row.dataset.trackKey === prevKey);
+      currentSearchIndex = idx >= 0 ? idx : 0;
+    } else {
+      currentSearchIndex = 0;
+    }
+
+    applyCurrentSearchMarker();
+    updateSearchNavButtons();
+    updateSearchCounter();
+  }
+
+  function normalizeSearchText(text) {
+    return String(text || "").trim().toLowerCase();
   }
 
   function bindPlayModePersistence() {
@@ -395,7 +580,7 @@
       const lrcBtn = item.lrc
         ? `<a class="small-btn" href="${escapeHTML(item.lrc)}" download>下载lrc</a>`
         : `<span class="small-btn is-disabled">下载lrc</span>`;
-      return `<tr>
+        return `<tr data-track-key="${escapeHTML(item._trackKey)}" data-search-text="${escapeHTML(normalizeSearchText(`${item._title} ${item._artist} ${item._album}`))}">
   <td>${escapeHTML(item.name)}</td>
   <td>${escapeHTML(item._artist)}</td>
   <td>${escapeHTML(item._album)}</td>
@@ -408,6 +593,7 @@
   </td>
 </tr>`;
     }).join("");
+    reapplyTrackSearchAfterRender();
   }
 
   function updateToggleButtons() {
