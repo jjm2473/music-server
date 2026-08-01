@@ -185,6 +185,36 @@ func TestHandleReadFileSupportsIfNoneMatch(t *testing.T) {
 	}
 }
 
+func TestHandleReadFileSupportsRangeRequest(t *testing.T) {
+	dataDir := t.TempDir()
+	content := []byte("0123456789")
+	if err := os.WriteFile(filepath.Join(dataDir, "song.mp3"), content, 0o644); err != nil {
+		t.Fatalf("write media file: %v", err)
+	}
+
+	h := NewHandler(config.Config{
+		Common: config.CommonConfig{Root: dataDir, Path: "/data"},
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/data/song.mp3", nil)
+	req.Header.Set("Range", "bytes=2-5")
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusPartialContent {
+		t.Fatalf("status: want %d, got %d", http.StatusPartialContent, rr.Code)
+	}
+	if got := rr.Header().Get("Content-Range"); got != "bytes 2-5/10" {
+		t.Fatalf("content-range: want %q, got %q", "bytes 2-5/10", got)
+	}
+	if got := rr.Header().Get("Content-Length"); got != "4" {
+		t.Fatalf("content-length: want %q, got %q", "4", got)
+	}
+	if body := rr.Body.String(); body != "2345" {
+		t.Fatalf("body: want %q, got %q", "2345", body)
+	}
+}
+
 func TestHandleWebUIAddsETagOnly(t *testing.T) {
 	dataDir := t.TempDir()
 	webDir := t.TempDir()

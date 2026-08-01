@@ -9,7 +9,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -156,7 +155,6 @@ func (h *Handler) handleReadFile(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Cache-Control", cacheControlForData(st.Name()))
 	w.Header().Set("ETag", makeETag(st))
-	w.Header().Set("Content-Length", strconv.FormatInt(st.Size(), 10))
 	w.Header().Set("Last-Modified", st.ModTime().UTC().Format(http.TimeFormat))
 	http.ServeContent(w, r, st.Name(), st.ModTime(), f)
 }
