@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -38,11 +39,45 @@ func NewHandler(cfg config.Config) http.Handler {
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if hasInvalidPath(r) {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+
 	if matchesBasePath(h.cfg.Common.Path, r.URL.Path) {
 		h.handleData(w, r)
 		return
 	}
 	h.handleWebUI(w, r)
+}
+
+func hasInvalidPath(r *http.Request) bool {
+	if containsDotDotToken(r.RequestURI) {
+		return true
+	}
+	if containsDotDotToken(r.URL.RawPath) {
+		return true
+	}
+	if containsDotDotToken(r.URL.EscapedPath()) {
+		return true
+	}
+	return containsDotDotToken(r.URL.Path)
+}
+
+func containsDotDotToken(p string) bool {
+	if p == "" {
+		return false
+	}
+	v := strings.ToLower(p)
+	if i := strings.IndexAny(v, "?#"); i >= 0 {
+		v = v[:i]
+	}
+	for _, seg := range strings.Split(v, "/") {
+		if seg == ".." {
+			return true
+		}
+	}
+	return strings.Contains(v, "%2e%2e")
 }
 
 func (h *Handler) handleData(w http.ResponseWriter, r *http.Request) {
@@ -78,25 +113,16 @@ func (h *Handler) handleWebUI(w http.ResponseWriter, r *http.Request) {
 		methodNotAllowedWebUI(w)
 		return
 	}
+	if st, ok := resolveWebUIETagTarget(h.cfg.Serve.WebUI, r.URL.Path); ok {
+		w.Header().Set("ETag", makeETag(st))
+	}
 	h.webUIHandler.ServeHTTP(w, r)
 }
 
 func (h *Handler) handleReadFile(w http.ResponseWriter, r *http.Request) {
-	rel, err := pathmap.URLToRelative(h.cfg.Common.Path, r.URL.Path)
+	_, safePath, notFound, err := h.resolveSafeRequestPath(r.URL.Path)
 	if err != nil {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
-
-	fullPath, err := pathmap.RelativeToFS(h.cfg.Common.Root, rel)
-	if err != nil {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
-
-	safePath, err := security.ResolveSafeReadPath(h.cfg.Common.Root, fullPath)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
+		if notFound {
 			http.NotFound(w, r)
 			return
 		}
@@ -128,9 +154,84 @@ func (h *Handler) handleReadFile(w http.ResponseWriter, r *http.Request) {
 	if ctype := mime.TypeByExtension(strings.ToLower(path.Ext(st.Name()))); ctype != "" {
 		w.Header().Set("Content-Type", ctype)
 	}
+	w.Header().Set("Cache-Control", cacheControlForData(st.Name()))
+	w.Header().Set("ETag", makeETag(st))
 	w.Header().Set("Content-Length", strconv.FormatInt(st.Size(), 10))
 	w.Header().Set("Last-Modified", st.ModTime().UTC().Format(http.TimeFormat))
 	http.ServeContent(w, r, st.Name(), st.ModTime(), f)
+}
+
+func (h *Handler) resolveSafeRequestPath(urlPath string) (rel string, safePath string, notFound bool, err error) {
+	rel, err = pathmap.URLToRelative(h.cfg.Common.Path, urlPath)
+	if err != nil {
+		return "", "", false, err
+	}
+
+	fullPath, err := pathmap.RelativeToFS(h.cfg.Common.Root, rel)
+	if err != nil {
+		return "", "", false, err
+	}
+
+	safePath, err = security.ResolveSafeReadPath(h.cfg.Common.Root, fullPath)
+	if err != nil {
+		return "", "", errors.Is(err, os.ErrNotExist), err
+	}
+
+	return rel, safePath, false, nil
+}
+
+func makeETag(st os.FileInfo) string {
+	return fmt.Sprintf(`"%x-%x"`, st.Size(), st.ModTime().UTC().UnixNano())
+}
+
+func cacheControlForData(name string) string {
+	if strings.EqualFold(path.Ext(name), ".json") {
+		return "public, max-age=300"
+	}
+	return "public, max-age=31536000"
+}
+
+func resolveWebUIETagTarget(root, reqPath string) (os.FileInfo, bool) {
+	cleanURLPath := path.Clean("/" + reqPath)
+	rel := strings.TrimPrefix(cleanURLPath, "/")
+	fullPath := filepath.Clean(filepath.Join(root, filepath.FromSlash(rel)))
+	if !isSubPath(root, fullPath) {
+		return nil, false
+	}
+
+	st, err := os.Stat(fullPath)
+	if err != nil {
+		return nil, false
+	}
+
+	if st.IsDir() {
+		idxPath := filepath.Join(fullPath, "index.html")
+		idxStat, err := os.Stat(idxPath)
+		if err != nil || idxStat.IsDir() {
+			return nil, false
+		}
+		return idxStat, true
+	}
+
+	if !st.Mode().IsRegular() {
+		return nil, false
+	}
+	return st, true
+}
+
+func isSubPath(root, target string) bool {
+	rel, err := filepath.Rel(root, target)
+	if err != nil {
+		return false
+	}
+	if rel == "." {
+		return true
+	}
+	if rel == ".." {
+		return false
+	}
+	prefix := ".." + string(os.PathSeparator)
+	return !strings.HasPrefix(rel, prefix)
 }
 
 func methodNotAllowedData(w http.ResponseWriter) {

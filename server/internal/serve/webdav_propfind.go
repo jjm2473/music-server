@@ -40,19 +40,9 @@ type resourceType struct {
 }
 
 func (h *Handler) handlePROPFIND(w http.ResponseWriter, r *http.Request) {
-	rel, err := pathmap.URLToRelative(h.cfg.Common.Path, r.URL.Path)
+	rel, safePath, notFound, err := h.resolveSafeRequestPath(r.URL.Path)
 	if err != nil {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
-	fullPath, err := pathmap.RelativeToFS(h.cfg.Common.Root, rel)
-	if err != nil {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
-	safePath, err := security.ResolveSafeReadPath(h.cfg.Common.Root, fullPath)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
+		if notFound {
 			http.NotFound(w, r)
 			return
 		}

@@ -111,3 +111,167 @@ func TestWebUIOnlyAllowsReadMethods(t *testing.T) {
 		t.Fatalf("head body should be empty, got %q", string(data))
 	}
 }
+
+func TestHandleReadFileCacheControlAndETag(t *testing.T) {
+	dataDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dataDir, "music.json"), []byte("[]"), 0o644); err != nil {
+		t.Fatalf("write json file: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dataDir, "song.mp3"), []byte("fake-mp3"), 0o644); err != nil {
+		t.Fatalf("write media file: %v", err)
+	}
+
+	h := NewHandler(config.Config{
+		Common: config.CommonConfig{Root: dataDir, Path: "/data"},
+	})
+
+	reqJSON := httptest.NewRequest(http.MethodGet, "/data/music.json", nil)
+	rrJSON := httptest.NewRecorder()
+	h.ServeHTTP(rrJSON, reqJSON)
+	if rrJSON.Code != http.StatusOK {
+		t.Fatalf("json status: want %d, got %d", http.StatusOK, rrJSON.Code)
+	}
+	if got := rrJSON.Header().Get("Cache-Control"); got != "public, max-age=300" {
+		t.Fatalf("json cache-control: want %q, got %q", "public, max-age=300", got)
+	}
+	if got := rrJSON.Header().Get("ETag"); got == "" {
+		t.Fatalf("json etag should not be empty")
+	}
+
+	reqMedia := httptest.NewRequest(http.MethodGet, "/data/song.mp3", nil)
+	rrMedia := httptest.NewRecorder()
+	h.ServeHTTP(rrMedia, reqMedia)
+	if rrMedia.Code != http.StatusOK {
+		t.Fatalf("media status: want %d, got %d", http.StatusOK, rrMedia.Code)
+	}
+	if got := rrMedia.Header().Get("Cache-Control"); got != "public, max-age=31536000" {
+		t.Fatalf("media cache-control: want %q, got %q", "public, max-age=31536000", got)
+	}
+	if got := rrMedia.Header().Get("ETag"); got == "" {
+		t.Fatalf("media etag should not be empty")
+	}
+}
+
+func TestHandleReadFileSupportsIfNoneMatch(t *testing.T) {
+	dataDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dataDir, "music.json"), []byte("[]"), 0o644); err != nil {
+		t.Fatalf("write json file: %v", err)
+	}
+
+	h := NewHandler(config.Config{
+		Common: config.CommonConfig{Root: dataDir, Path: "/data"},
+	})
+
+	firstReq := httptest.NewRequest(http.MethodGet, "/data/music.json", nil)
+	firstRR := httptest.NewRecorder()
+	h.ServeHTTP(firstRR, firstReq)
+	if firstRR.Code != http.StatusOK {
+		t.Fatalf("first status: want %d, got %d", http.StatusOK, firstRR.Code)
+	}
+	etag := firstRR.Header().Get("ETag")
+	if etag == "" {
+		t.Fatalf("etag should not be empty")
+	}
+
+	secondReq := httptest.NewRequest(http.MethodGet, "/data/music.json", nil)
+	secondReq.Header.Set("If-None-Match", etag)
+	secondRR := httptest.NewRecorder()
+	h.ServeHTTP(secondRR, secondReq)
+	if secondRR.Code != http.StatusNotModified {
+		t.Fatalf("second status: want %d, got %d", http.StatusNotModified, secondRR.Code)
+	}
+	if secondRR.Body.Len() != 0 {
+		t.Fatalf("not-modified body should be empty")
+	}
+}
+
+func TestHandleWebUIAddsETagOnly(t *testing.T) {
+	dataDir := t.TempDir()
+	webDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(webDir, "index.html"), []byte("hello"), 0o644); err != nil {
+		t.Fatalf("write web file: %v", err)
+	}
+
+	h := NewHandler(config.Config{
+		Common: config.CommonConfig{Root: dataDir, Path: "/data"},
+		Serve:  config.ServeConfig{WebUI: webDir},
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status: want %d, got %d", http.StatusOK, rr.Code)
+	}
+	if got := rr.Header().Get("ETag"); got == "" {
+		t.Fatalf("etag should not be empty")
+	}
+	if got := rr.Header().Get("Cache-Control"); got != "" {
+		t.Fatalf("webui cache-control should stay empty, got %q", got)
+	}
+}
+
+func TestHandleWebUISupportsIfNoneMatch(t *testing.T) {
+	dataDir := t.TempDir()
+	webDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(webDir, "index.html"), []byte("hello"), 0o644); err != nil {
+		t.Fatalf("write web file: %v", err)
+	}
+
+	h := NewHandler(config.Config{
+		Common: config.CommonConfig{Root: dataDir, Path: "/data"},
+		Serve:  config.ServeConfig{WebUI: webDir},
+	})
+
+	firstReq := httptest.NewRequest(http.MethodGet, "/", nil)
+	firstRR := httptest.NewRecorder()
+	h.ServeHTTP(firstRR, firstReq)
+	if firstRR.Code != http.StatusOK {
+		t.Fatalf("first status: want %d, got %d", http.StatusOK, firstRR.Code)
+	}
+	etag := firstRR.Header().Get("ETag")
+	if etag == "" {
+		t.Fatalf("etag should not be empty")
+	}
+
+	secondReq := httptest.NewRequest(http.MethodGet, "/", nil)
+	secondReq.Header.Set("If-None-Match", etag)
+	secondRR := httptest.NewRecorder()
+	h.ServeHTTP(secondRR, secondReq)
+	if secondRR.Code != http.StatusNotModified {
+		t.Fatalf("second status: want %d, got %d", http.StatusNotModified, secondRR.Code)
+	}
+	if secondRR.Body.Len() != 0 {
+		t.Fatalf("not-modified body should be empty")
+	}
+}
+
+func TestServeHTTPRejectsInvalidDotDotPath(t *testing.T) {
+	dataDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dataDir, "song.txt"), []byte("ok"), 0o644); err != nil {
+		t.Fatalf("write data file: %v", err)
+	}
+
+	h := NewHandler(config.Config{
+		Common: config.CommonConfig{Root: dataDir, Path: "/data"},
+	})
+
+	cases := []string{
+		"/../../etc/passwd",
+		"/../../../etc/passwd",
+		"/%2e%2e/%2e%2e/etc/passwd",
+		"/../%2e%2e/../etc/passwd",
+		"/data/../song.txt",
+		"/data/%2e%2e/song.txt",
+	}
+
+	for _, u := range cases {
+		req := httptest.NewRequest(http.MethodGet, u, nil)
+		rr := httptest.NewRecorder()
+		h.ServeHTTP(rr, req)
+		if rr.Code != http.StatusBadRequest {
+			t.Fatalf("url %q status: want %d, got %d", u, http.StatusBadRequest, rr.Code)
+		}
+	}
+}
