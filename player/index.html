@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Music Server Player</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="layout">
+      <aside class="sidebar">
+        <h1>Music Player</h1>
+        <section>
+          <h2>内置列表</h2>
+          <ul id="builtinList" class="group-list"></ul>
+        </section>
+        <section class="category-panel">
+          <div class="category-head">
+            <h2>分类浏览</h2>
+            <div class="view-toggle" id="viewToggle">
+              <button type="button" data-view="album" class="mini-btn active">专辑</button>
+              <button type="button" data-view="artist" class="mini-btn">艺术家</button>
+            </div>
+          </div>
+          <input id="categoryFilter" class="filter-input" type="search" placeholder="搜索专辑或艺术家" />
+          <ul id="categoryList" class="group-list scroll-list"></ul>
+        </section>
+      </aside>
+      <section class="browser-panel">
+        <div class="browser-head">
+          <h2 id="browseTitle">列表内容</h2>
+          <div class="browser-controls">
+            <button id="playAllBtn" type="button">播放全部</button>
+          </div>
+        </div>
+        <div class="track-table-wrap">
+          <table class="track-table">
+            <thead>
+              <tr>
+                <th>
+                  <button type="button" class="th-sort" data-sort="title">标题</button>
+                </th>
+                <th>
+                  <button type="button" class="th-sort" data-sort="artist">艺术家</button>
+                </th>
+                <th>
+                  <button type="button" class="th-sort" data-sort="album">专辑</button>
+                </th>
+                <th>
+                  <button type="button" class="th-sort" data-sort="duration">时长</button>
+                </th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="trackTbody"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="content player-panel">
+        <div id="aplayer"></div>
+        <div class="toolbar">
+          <button id="toggleFavorite" type="button">收藏当前曲目</button>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      window.MUSIC_JSON_URL = window.MUSIC_JSON_URL || "/data/music.json";
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script>
+    <script src="./storage.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
