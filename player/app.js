@@ -61,6 +61,7 @@
   let currentPlayList = [];
   let lastKnownPlayMode = "";
   let playBtnSyncQueued = false;
+  let importSwitchToken = 0;
   let currentBrowseList = resolveList(groups, currentGroupKey);
   let currentCategoryView = currentGroupKey.startsWith("artist:") ? "artist" : "album";
   let currentSortKey = isValidSortKey(savedView.sortKey) ? savedView.sortKey : "default";
@@ -389,15 +390,13 @@
     currentPlaySortKey = resolvedSortKey;
     currentPlaySortDir = resolvedSortDir;
 
-    ap.list.clear();
-    list.forEach((item) => ap.list.add(item));
-
     let idx = 0;
     if (playingState.trackKey) {
       const found = list.findIndex((it) => it._trackKey === playingState.trackKey);
       if (found >= 0) idx = found;
     }
-    ap.list.switch(idx);
+
+    loadPlayerListWithScapegoat(list, idx, false);
     lastKnownPlayMode = getCurrentPlayMode();
   }
 
@@ -472,10 +471,50 @@
   }
 
   function importToPlayerAndPlay(list, idx) {
+    loadPlayerListWithScapegoat(list, idx, true);
+  }
+
+  function loadPlayerListWithScapegoat(list, idx, shouldPlay) {
+    const token = ++importSwitchToken;
     ap.list.clear();
-    list.forEach((item) => ap.list.add(item));
-    ap.list.switch(idx);
-    ap.play();
+
+    const prepared = prepareListForFirstLrcRace(list, idx);
+    ap.list.add(prepared.items);
+    ap.list.switch(prepared.switchIndex);
+
+    if (shouldPlay) {
+      ap.play();
+    }
+
+    if (prepared.hasScapegoat) {
+      setTimeout(() => {
+        if (token !== importSwitchToken) return;
+        ap.list.remove(0);
+      }, 200);
+    }
+  }
+
+  function prepareListForFirstLrcRace(list, idx) {
+    const shouldUseScapegoat = idx > 0 && list[0] && list[0].lrc;
+    if (!shouldUseScapegoat) {
+      return {
+        items: list,
+        switchIndex: idx,
+        hasScapegoat: false,
+      };
+    }
+
+    const scapegoat = {
+      name: "列表加载中...",
+      artist: " ",
+      url: "data:,",
+      lrc: "data:,",
+    };
+    return {
+      items: [scapegoat, ...list],
+      switchIndex: idx + 1,
+      hasScapegoat: true,
+    };
   }
 
   function canReuseCurrentPlayList(targetList) {
