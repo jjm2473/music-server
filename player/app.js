@@ -125,9 +125,14 @@
     const sorted = getSortedBrowseList();
     if (!sorted.length) return;
 
-    adoptViewAsPlayContext();
-    currentPlayList = sorted;
-    importToPlayerAndPlay(sorted, 0);
+    if (canReuseCurrentPlayList(sorted)) {
+      ap.list.switch(0);
+      ap.play();
+    } else {
+      adoptViewAsPlayContext();
+      currentPlayList = sorted;
+      importToPlayerAndPlay(sorted, 0);
+    }
     savePlayState();
     savePlayingState();
   });
@@ -448,9 +453,14 @@
     const idx = sorted.findIndex((it) => it._trackKey === trackKey);
     if (idx < 0) return;
 
-    adoptViewAsPlayContext();
-    currentPlayList = sorted;
-    importToPlayerAndPlay(sorted, idx);
+    if (canReuseCurrentPlayList(sorted)) {
+      ap.list.switch(idx);
+      ap.play();
+    } else {
+      adoptViewAsPlayContext();
+      currentPlayList = sorted;
+      importToPlayerAndPlay(sorted, idx);
+    }
     savePlayState();
     savePlayingState();
   }
@@ -466,6 +476,35 @@
     list.forEach((item) => ap.list.add(item));
     ap.list.switch(idx);
     ap.play();
+  }
+
+  function canReuseCurrentPlayList(targetList) {
+    if (!isPlayContextSameAsView()) return false;
+
+    // Favorite list can change when star state changes, so keep strict list checks there.
+    if (currentPlayGroupKey !== "favorite" && currentGroupKey !== "favorite") {
+      return true;
+    }
+
+    if (!isSameTrackList(currentPlayList, targetList)) return false;
+    return true;
+  }
+
+  function isPlayContextSameAsView() {
+    return currentPlayGroupKey === currentGroupKey
+      && currentPlaySortKey === currentSortKey
+      && currentPlaySortDir === currentSortDir;
+  }
+
+  function isSameTrackList(a, b) {
+    if (!Array.isArray(a) || !Array.isArray(b)) return false;
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i += 1) {
+      if (a[i]._trackKey !== b[i]._trackKey) {
+        return false;
+      }
+    }
+    return true;
   }
 
   function toggleFavoriteByKey(trackKey) {

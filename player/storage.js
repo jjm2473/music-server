@@ -43,7 +43,7 @@
         groupKey: raw.groupKey || "all",
         sortKey: raw.sortKey || "default",
         sortDir: raw.sortDir === "desc" ? "desc" : "asc",
-        playMode: raw.playMode || "list",
+        playMode: raw.playMode || "list:all",
       };
     },
     setPlay(play) {
@@ -51,7 +51,7 @@
         groupKey: play.groupKey || "all",
         sortKey: play.sortKey || "default",
         sortDir: play.sortDir === "desc" ? "desc" : "asc",
-        playMode: play.playMode || "list",
+        playMode: play.playMode || "list:all",
       });
     },
     getPlaying() {
