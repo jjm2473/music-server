@@ -479,9 +479,9 @@ button.icon-btn {
   }
 
   .track-search-input {
-    width: 160px;
-    max-width: 42vw;
-    min-width: 120px;
+    width: 30%;
+    max-width: 160px;
+    min-width: 9em;
   }
 
   .track-op {
