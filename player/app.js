@@ -865,7 +865,7 @@
       const isActive = key === currentSortKey;
       btn.classList.toggle("active", isActive);
       const base = sortText(key);
-      const suffix = isActive ? (currentSortDir === "asc" ? " ↑" : " ↓") : "";
+      const suffix = isActive ? (currentSortDir === "asc" ? " ↓" : " ↑") : "";
       btn.textContent = base + suffix;
     });
   }
