@@ -12,6 +12,9 @@
   const searchNextBtn = document.getElementById("searchNextBtn");
   const searchCountEl = document.getElementById("searchCount");
   const browseTitleEl = document.getElementById("browseTitle");
+  const openNavBtn = document.getElementById("openNavBtn");
+  const closeNavBtn = document.getElementById("closeNavBtn");
+  const navOverlay = document.getElementById("navOverlay");
   const sortHeaderEls = Array.from(document.querySelectorAll(".th-sort"));
 
   const resp = await fetch(window.MUSIC_JSON_URL);
@@ -79,16 +82,48 @@
 
   restorePlayAndPlaying(savedPlay, savedPlaying);
 
+  if (openNavBtn) {
+    openNavBtn.addEventListener("click", () => {
+      setNavOpen(true);
+    });
+  }
+
+  if (closeNavBtn) {
+    closeNavBtn.addEventListener("click", () => {
+      setNavOpen(false);
+    });
+  }
+
+  if (navOverlay) {
+    navOverlay.addEventListener("click", () => {
+      setNavOpen(false);
+    });
+  }
+
+  document.addEventListener("click", (ev) => {
+    if (!isCompactActionMenu()) return;
+    if (!document.body.classList.contains("nav-open")) return;
+
+    const target = ev.target;
+    if (!(target instanceof Element)) return;
+    if (target.closest("#openNavBtn")) return;
+    if (target.closest(".sidebar")) return;
+
+    setNavOpen(false);
+  });
+
   builtinListEl.addEventListener("click", (ev) => {
     const li = ev.target.closest("li[data-key]");
     if (!li) return;
     selectGroup(li.dataset.key);
+    setNavOpen(false);
   });
 
   categoryListEl.addEventListener("click", (ev) => {
     const li = ev.target.closest("li[data-key]");
     if (!li) return;
     selectGroup(li.dataset.key);
+    setNavOpen(false);
   });
 
   viewToggleEl.addEventListener("click", (ev) => {
@@ -875,6 +910,11 @@
       return window.CSS.escape(value);
     }
     return String(value).replaceAll('"', '\\"');
+  }
+
+  function setNavOpen(open) {
+    if (!isCompactActionMenu()) return;
+    document.body.classList.toggle("nav-open", !!open);
   }
 
   function isCompactActionMenu() {

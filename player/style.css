@@ -39,6 +39,18 @@ body {
   box-shadow: 0 8px 30px rgba(45, 36, 20, 0.06);
 }
 
+.sidebar-head-mobile {
+  display: none;
+}
+
+#openNavBtn {
+  display: none;
+}
+
+.nav-overlay {
+  display: none;
+}
+
 .player-panel {
   min-width: 0;
 }
@@ -405,10 +417,47 @@ button.icon-btn {
     align-items: start;
   }
 
-  .sidebar,
   .browser-panel,
   .player-panel {
     min-height: 0;
+  }
+
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    width: min(82vw, 320px);
+    z-index: 30;
+    border-radius: 0 16px 16px 0;
+    transform: translateX(-105%);
+    transition: transform 180ms ease;
+    box-shadow: 0 14px 36px rgba(45, 36, 20, 0.2);
+  }
+
+  body.nav-open .sidebar {
+    transform: translateX(0);
+  }
+
+  .sidebar-head-mobile {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 2px;
+  }
+
+  #openNavBtn {
+    display: inline-flex;
+  }
+
+  .nav-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    background: rgba(10, 10, 10, 0.22);
+  }
+
+  body.nav-open .nav-overlay {
+    display: block;
   }
 
   .scroll-list,

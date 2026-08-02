@@ -10,6 +10,9 @@
   <body>
     <main class="layout">
       <aside class="sidebar">
+        <div class="sidebar-head-mobile">
+          <button id="closeNavBtn" type="button" class="mini-btn icon-btn" title="关闭导航">✕</button>
+        </div>
         <h1>Music Player</h1>
         <section>
           <h2>内置列表</h2>
@@ -29,6 +32,7 @@
       </aside>
       <section class="browser-panel">
         <div class="browser-head">
+          <button id="openNavBtn" type="button" class="mini-btn icon-btn nav-toggle-btn" title="展开导航">☰</button>
           <h2 id="browseTitle">列表内容</h2>
           <div class="browser-controls">
             <input id="trackSearchInput" class="track-search-input" type="search" placeholder="搜索当前列表" />
@@ -68,6 +72,7 @@
         </div>
       </section>
     </main>
+    <div id="navOverlay" class="nav-overlay" aria-hidden="true"></div>
 
     <script>
       window.MUSIC_JSON_URL = window.MUSIC_JSON_URL || "/data/music.json";
