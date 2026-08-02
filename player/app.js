@@ -478,7 +478,21 @@
     const token = ++importSwitchToken;
     ap.list.clear();
 
-    const prepared = prepareListForFirstLrcRace(list, idx);
+    const shouldUseScapegoat = idx > 0 && list[0] && list[0].lrc !== "data:,";
+    const prepared = shouldUseScapegoat
+      ? {
+          items: [{
+            name: "列表加载中...",
+            artist: " ",
+            url: "data:,",
+            lrc: "data:,",
+          }, ...list],
+          switchIndex: idx + 1,
+        }
+      : {
+          items: list,
+          switchIndex: idx,
+        };
     ap.list.add(prepared.items);
     ap.list.switch(prepared.switchIndex);
 
@@ -486,35 +500,12 @@
       ap.play();
     }
 
-    if (prepared.hasScapegoat) {
+    if (shouldUseScapegoat) {
       setTimeout(() => {
         if (token !== importSwitchToken) return;
         ap.list.remove(0);
       }, 200);
     }
-  }
-
-  function prepareListForFirstLrcRace(list, idx) {
-    const shouldUseScapegoat = idx > 0 && list[0] && list[0].lrc;
-    if (!shouldUseScapegoat) {
-      return {
-        items: list,
-        switchIndex: idx,
-        hasScapegoat: false,
-      };
-    }
-
-    const scapegoat = {
-      name: "列表加载中...",
-      artist: " ",
-      url: "data:,",
-      lrc: "data:,",
-    };
-    return {
-      items: [scapegoat, ...list],
-      switchIndex: idx + 1,
-      hasScapegoat: true,
-    };
   }
 
   function canReuseCurrentPlayList(targetList) {
@@ -655,7 +646,7 @@
       const favClass = favorites.has(item._trackKey) ? "small-btn icon-btn is-active" : "small-btn icon-btn";
       const playClass = item._trackKey === playingKey ? "small-btn icon-btn is-active" : "small-btn icon-btn";
       const downloadName = `${item._artist} - ${item.name}`;
-      const lrcBtn = item.lrc
+      const lrcBtn = item.lrc && item.lrc !== "data:,"
         ? `<a class="small-btn icon-btn" href="${escapeHTML(item.lrc)}" download title="下载lrc">⤓lrc</a>`
         : `<span class="small-btn icon-btn is-disabled" title="lrc不可用">⤓lrc</span>`;
         return `<tr data-track-key="${escapeHTML(item._trackKey)}" data-search-text="${escapeHTML(normalizeSearchText(`${item._title} ${item._artist} ${item._album}`))}">
@@ -692,13 +683,14 @@
     const artist = item.artist || "Unknown";
     const album = item.album || "未知专辑";
     const durationSec = Number.isFinite(item.length) ? Math.max(0, Math.floor(item.length)) : null;
+    const lrcUrl = typeof item.lrc === "string" ? item.lrc.trim() : "";
     const _trackKey = `${item.name || title}-${artist}`;
     return {
       name: title,
       artist: `${artist} · ${album}`,
       url: item.url,
       cover: item.cover || "",
-      lrc: item.lrc || "",
+      lrc: lrcUrl || "data:,",
       _trackKey,
       _album: album,
       _artist: artist,
