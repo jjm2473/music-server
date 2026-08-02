@@ -415,6 +415,7 @@ button.icon-btn {
     height: auto;
     min-height: 100vh;
     align-items: start;
+	padding: 10px;
   }
 
   .browser-panel,
@@ -487,12 +488,50 @@ button.icon-btn {
     width: auto;
   }
 
-  .track-table th:last-child {
-    width: auto;
+  .track-table {
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  .track-table thead,
+  .track-table tbody,
+  .track-table tr {
+    display: block;
+    width: 100%;
+  }
+
+  .track-table thead tr,
+  .track-table tbody tr {
+    display: grid;
+    grid-template-columns: minmax(5em, 2.4fr) minmax(0, 1.5fr) minmax(0, 1.5fr) 3.5em 3em;
+    align-items: stretch;
+  }
+
+  .track-table thead tr,
+  .track-table tbody tr {
+    border-bottom: 1px solid #f2ece1;
+  }
+
+  .track-table th,
+  .track-table td {
+    display: block;
+    min-width: 0;
+    border-bottom: 0;
+    height: 100%;
+    align-content: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .track-op {
+    display: flex;
+    align-items: center;
+    height: 100%;
   }
 
   .track-table-wrap {
-    overflow-x: auto;
+    overflow-x: hidden;
     overflow-y: visible;
   }
 
