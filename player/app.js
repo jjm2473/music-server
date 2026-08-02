@@ -203,6 +203,22 @@
     });
   }
 
+  document.addEventListener("click", (ev) => {
+    if (!isCompactActionMenu()) return;
+    if (ev.target.closest(".track-op-menu")) return;
+    closeAllActionMenus();
+  });
+
+  document.addEventListener("toggle", (ev) => {
+    if (!isCompactActionMenu()) return;
+    const target = ev.target;
+    if (!(target instanceof HTMLDetailsElement)) return;
+    if (!target.classList.contains("track-op-menu")) return;
+    if (!target.open) return;
+    if (!trackTbodyEl.contains(target)) return;
+    closeAllActionMenus(target);
+  }, true);
+
   updateSearchNavButtons();
 
   favoriteBtn.addEventListener("click", () => {
@@ -359,6 +375,14 @@
     applyCurrentSearchMarker();
     updateSearchNavButtons();
     updateSearchCounter();
+  }
+
+  function closeAllActionMenus(exceptMenu) {
+    const openMenus = trackTbodyEl.querySelectorAll("details.track-op-menu[open]");
+    openMenus.forEach((menu) => {
+      if (exceptMenu && menu === exceptMenu) return;
+      menu.removeAttribute("open");
+    });
   }
 
   function normalizeSearchText(text) {
@@ -549,9 +573,13 @@
     builtInRows[1].label = `收藏 ★ (${groups.favorite.length})`;
     renderGroupList(builtinListEl, builtInRows);
 
-    currentBrowseList = resolveList(groups, currentGroupKey);
-    renderTrackTable();
-    updateActiveGroup();
+    if (currentGroupKey === "favorite") {
+      currentBrowseList = resolveList(groups, currentGroupKey);
+      renderTrackTable();
+      updateActiveGroup();
+    } else {
+      syncFavoriteButtonState(trackKey);
+    }
 
     if (currentPlayGroupKey === "favorite") {
       const keepKey = ap.list.audios[ap.list.index]?._trackKey || "";
@@ -560,6 +588,12 @@
       savePlayState();
       savePlayingState();
     }
+  }
+
+  function syncFavoriteButtonState(trackKey) {
+    const btn = trackTbodyEl.querySelector(`button[data-action="favorite"][data-key="${cssEscape(trackKey)}"]`);
+    if (!btn) return;
+    btn.classList.toggle("is-active", favorites.has(trackKey));
   }
 
   function refreshPlayList(nextList, keepTrackKey) {
@@ -639,9 +673,10 @@
   }
 
   function renderTrackTable() {
-    browseTitleEl.textContent = `列表内容 - ${groupLabel(currentGroupKey)}`;
+    browseTitleEl.textContent = groupLabel(currentGroupKey);
     const list = getSortedBrowseList();
     const playingKey = getCurrentPlayingTrackKey();
+    const compactMenu = isCompactActionMenu();
     trackTbodyEl.innerHTML = list.map((item) => {
       const favClass = favorites.has(item._trackKey) ? "small-btn icon-btn is-active" : "small-btn icon-btn";
       const playClass = item._trackKey === playingKey ? "small-btn icon-btn is-active" : "small-btn icon-btn";
@@ -649,16 +684,21 @@
       const lrcBtn = item.lrc && item.lrc !== "data:,"
         ? `<a class="small-btn icon-btn" href="${escapeHTML(item.lrc)}" download title="下载lrc">⤓lrc</a>`
         : `<span class="small-btn icon-btn is-disabled" title="lrc不可用">⤓lrc</span>`;
+      const actions = `
+    <button class="${favClass}" type="button" data-action="favorite" data-key="${escapeHTML(item._trackKey)}" title="收藏">★</button>
+    <button class="${playClass} icon-play" type="button" data-action="play" data-key="${escapeHTML(item._trackKey)}" title="播放">▶</button>
+    <a class="small-btn icon-btn icon-download" href="${escapeHTML(item.url)}" download="${escapeHTML(downloadName)}" title="下载">⤓</a>
+    ${lrcBtn}`;
         return `<tr data-track-key="${escapeHTML(item._trackKey)}" data-search-text="${escapeHTML(normalizeSearchText(`${item._title} ${item._artist} ${item._album}`))}">
   <td>${escapeHTML(item.name)}</td>
   <td>${escapeHTML(item._artist)}</td>
   <td>${escapeHTML(item._album)}</td>
   <td>${escapeHTML(item._durationText)}</td>
   <td class="track-op">
-    <button class="${favClass}" type="button" data-action="favorite" data-key="${escapeHTML(item._trackKey)}" title="收藏">★</button>
-    <button class="${playClass} icon-play" type="button" data-action="play" data-key="${escapeHTML(item._trackKey)}" title="播放">▶</button>
-    <a class="small-btn icon-btn icon-download" href="${escapeHTML(item.url)}" download="${escapeHTML(downloadName)}" title="下载">⤓</a>
-    ${lrcBtn}
+    <details class="track-op-menu"${compactMenu ? "" : " open"}>
+      <summary class="small-btn icon-btn" title="更多操作">···</summary>
+      <div class="track-op-menu-panel">${actions}</div>
+    </details>
   </td>
 </tr>`;
     }).join("");
@@ -835,6 +875,10 @@
       return window.CSS.escape(value);
     }
     return String(value).replaceAll('"', '\\"');
+  }
+
+  function isCompactActionMenu() {
+    return window.matchMedia("(max-width: 900px)").matches;
   }
 
   function escapeHTML(s) {

@@ -245,6 +245,24 @@ h2 {
   text-overflow: clip !important;
 }
 
+.track-op-menu {
+  display: inline-block;
+  position: relative;
+}
+
+.track-op-menu > summary {
+  display: none;
+}
+
+.track-op-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.track-op-menu-panel {
+  display: inline-flex;
+  align-items: center;
+}
+
 .track-table th:last-child {
   width: 200px;
 }
@@ -396,5 +414,65 @@ button.icon-btn {
   .scroll-list,
   .track-table-wrap {
     max-height: 42vh;
+  }
+
+  .browser-head {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .browser-controls {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    row-gap: 8px;
+  }
+
+  .track-search-input {
+    width: 160px;
+    max-width: 42vw;
+    min-width: 120px;
+  }
+
+  .track-op {
+    width: auto;
+  }
+
+  .track-table th:last-child {
+    width: auto;
+  }
+
+  .track-table-wrap {
+    overflow-x: auto;
+    overflow-y: visible;
+  }
+
+  .track-op-menu > summary {
+    display: inline-flex;
+    list-style: none;
+  }
+
+  .track-op-menu:not([open]) .track-op-menu-panel {
+    display: none;
+  }
+
+  .track-op-menu-panel .small-btn + .small-btn {
+    margin-left: 0;
+  }
+
+  .track-op-menu-panel {
+    position: absolute;
+    right: calc(100% + 6px);
+    top: 50%;
+    transform: translateY(-50%);
+    max-width: min(240px, 68vw);
+    white-space: nowrap;
+    z-index: 6;
+    background: #fffdf8;
+    border: 1px solid #e8e0d4;
+    border-radius: 12px;
+    box-shadow: 0 10px 24px rgba(45, 36, 20, 0.12);
+    padding: 6px;
+    gap: 6px;
   }
 }
