@@ -399,6 +399,23 @@ button.icon-btn {
   line-height: 1;
 }
 
+#toggleFavorite {
+  background: #f3e7d8;
+  color: #8a5d36;
+  border: 1px solid #e5d8c6;
+}
+
+#toggleFavorite.is-active {
+  background: #f9d7cd;
+  color: #912c1f;
+  border-color: #e9b7aa;
+}
+
+#toggleFavorite:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .player-panel {
   display: flex;
   flex-direction: column;

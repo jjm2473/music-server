@@ -81,6 +81,7 @@
   renderTrackTable();
 
   restorePlayAndPlaying(savedPlay, savedPlaying);
+  syncGlobalFavoriteButtonState();
 
   if (openNavBtn) {
     openNavBtn.addEventListener("click", () => {
@@ -270,6 +271,7 @@
   function handlePlayerTrackChange() {
     savePlayingState();
     queuePlayButtonSync();
+    syncGlobalFavoriteButtonState();
   }
 
   function queuePlayButtonSync() {
@@ -623,6 +625,8 @@
       savePlayState();
       savePlayingState();
     }
+
+    syncGlobalFavoriteButtonState();
   }
 
   function syncFavoriteButtonState(trackKey) {
@@ -910,6 +914,19 @@
       return window.CSS.escape(value);
     }
     return String(value).replaceAll('"', '\\"');
+  }
+
+  function syncGlobalFavoriteButtonState() {
+    if (!favoriteBtn) return;
+
+    const current = ap.list.audios[ap.list.index];
+    const key = current ? current._trackKey : "";
+    const isFav = !!key && favorites.has(key);
+
+    favoriteBtn.disabled = !key;
+    favoriteBtn.classList.toggle("is-active", isFav);
+    favoriteBtn.setAttribute("aria-pressed", isFav ? "true" : "false");
+    favoriteBtn.title = isFav ? "取消收藏" : "收藏";
   }
 
   function setNavOpen(open) {
