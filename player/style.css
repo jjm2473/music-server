@@ -149,6 +149,21 @@ h2 {
   font-size: 12px;
 }
 
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-weight: 600;
+}
+
+.mini-btn.icon-btn {
+  min-width: 30px;
+  height: 30px;
+  padding: 0;
+  font-size: 15px;
+}
+
 .mini-btn.active {
   background: #f9d7cd;
   color: #912c1f;
@@ -231,11 +246,14 @@ h2 {
 }
 
 .track-table th:last-child {
-  width: 300px;
+  width: 200px;
 }
 
 .small-btn {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
   border: 1px solid #e5d8c6;
   background: #fff;
   color: #5f3b24;
@@ -244,7 +262,26 @@ h2 {
   font-size: 12px;
   cursor: pointer;
   text-decoration: none;
-  line-height: 1.2;
+  line-height: 1;
+}
+
+.small-btn.icon-btn {
+  width: 30px;
+  height: 30px;
+  font-size: 15px;
+}
+
+.icon-play {
+  padding: 0.1em 0 0 0.15em;
+  margin-top: -0.1em;
+}
+
+.small-btn.icon-btn.icon-play {
+  padding-top: 0.2em;
+}
+
+.small-btn.icon-btn.icon-download {
+  font-size: 24px;
 }
 
 .track-op .small-btn + .small-btn {
@@ -323,6 +360,13 @@ button {
   background: var(--accent);
   color: #fff;
   cursor: pointer;
+}
+
+button.icon-btn {
+  width: 38px;
+  height: 38px;
+  font-size: 18px;
+  line-height: 1;
 }
 
 .player-panel {

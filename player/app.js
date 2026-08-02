@@ -30,7 +30,7 @@
 
   const builtInRows = [
     { key: "all", label: `全部 (${groups.all.length})` },
-    { key: "favorite", label: `收藏 (${groups.favorite.length})` },
+    { key: "favorite", label: `收藏 ★ (${groups.favorite.length})` },
   ];
   const categoryRows = {
     album: Object.keys(groups.album).sort().map((name) => ({
@@ -477,7 +477,7 @@
 
     storage.setFavorites(favorites);
     groups.favorite = groups.all.filter((item) => favorites.has(item._trackKey));
-    builtInRows[1].label = `收藏 (${groups.favorite.length})`;
+    builtInRows[1].label = `收藏 ★ (${groups.favorite.length})`;
     renderGroupList(builtinListEl, builtInRows);
 
     currentBrowseList = resolveList(groups, currentGroupKey);
@@ -574,21 +574,21 @@
     const list = getSortedBrowseList();
     const playingKey = getCurrentPlayingTrackKey();
     trackTbodyEl.innerHTML = list.map((item) => {
-      const favClass = favorites.has(item._trackKey) ? "small-btn is-active" : "small-btn";
-      const playClass = item._trackKey === playingKey ? "small-btn is-active" : "small-btn";
+      const favClass = favorites.has(item._trackKey) ? "small-btn icon-btn is-active" : "small-btn icon-btn";
+      const playClass = item._trackKey === playingKey ? "small-btn icon-btn is-active" : "small-btn icon-btn";
       const downloadName = `${item._artist} - ${item.name}`;
       const lrcBtn = item.lrc
-        ? `<a class="small-btn" href="${escapeHTML(item.lrc)}" download>下载lrc</a>`
-        : `<span class="small-btn is-disabled">下载lrc</span>`;
+        ? `<a class="small-btn icon-btn" href="${escapeHTML(item.lrc)}" download title="下载lrc">⤓lrc</a>`
+        : `<span class="small-btn icon-btn is-disabled" title="lrc不可用">⤓lrc</span>`;
         return `<tr data-track-key="${escapeHTML(item._trackKey)}" data-search-text="${escapeHTML(normalizeSearchText(`${item._title} ${item._artist} ${item._album}`))}">
   <td>${escapeHTML(item.name)}</td>
   <td>${escapeHTML(item._artist)}</td>
   <td>${escapeHTML(item._album)}</td>
   <td>${escapeHTML(item._durationText)}</td>
   <td class="track-op">
-    <button class="${favClass}" type="button" data-action="favorite" data-key="${escapeHTML(item._trackKey)}">收藏</button>
-    <button class="${playClass}" type="button" data-action="play" data-key="${escapeHTML(item._trackKey)}">播放</button>
-    <a class="small-btn" href="${escapeHTML(item.url)}" download="${escapeHTML(downloadName)}">下载</a>
+    <button class="${favClass}" type="button" data-action="favorite" data-key="${escapeHTML(item._trackKey)}" title="收藏">★</button>
+    <button class="${playClass} icon-play" type="button" data-action="play" data-key="${escapeHTML(item._trackKey)}" title="播放">▶</button>
+    <a class="small-btn icon-btn icon-download" href="${escapeHTML(item.url)}" download="${escapeHTML(downloadName)}" title="下载">⤓</a>
     ${lrcBtn}
   </td>
 </tr>`;
@@ -748,7 +748,7 @@
 
   function groupLabel(key) {
     if (key === "all") return "全部";
-    if (key === "favorite") return "收藏";
+    if (key === "favorite") return "收藏 ★";
     if (key.startsWith("album:")) return `专辑: ${key.slice(6)}`;
     if (key.startsWith("artist:")) return `艺术家: ${key.slice(7)}`;
     return key;
